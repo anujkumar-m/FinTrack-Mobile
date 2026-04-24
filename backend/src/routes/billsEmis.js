@@ -30,7 +30,7 @@ router.post(
     body('amount').isNumeric().withMessage('Amount is required'),
     body('category').notEmpty().withMessage('Category is required'),
     body('dueDate').isISO8601().withMessage('Valid due date is required'),
-    body('month').matches(/^\d{4}-\d{2}$/).withMessage('Month must be YYYY-MM'),
+    body('month').optional().matches(/^\d{4}-\d{2}$/).withMessage('Month must be YYYY-MM'),
   ],
   async (req, res, next) => {
     try {
@@ -39,14 +39,16 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, amount, category, dueDate, month, isPaid, isRecurring } = req.body;
+      const { name, amount, category, notes, dueDate, month, isPaid, isRecurring } = req.body;
+      const derivedMonth = month || new Date(dueDate).toISOString().slice(0, 7);
       const bill = new Bill({
         user: req.user.id,
         name,
         amount,
         category,
+        notes,
         dueDate,
-        month,
+        month: derivedMonth,
         isPaid,
         isRecurring,
       });
@@ -60,10 +62,11 @@ router.post(
 
 router.put('/bills/:id', auth, async (req, res, next) => {
   try {
-    const updates = (({ name, amount, category, dueDate, month, isPaid, isRecurring }) => ({
+    const updates = (({ name, amount, category, notes, dueDate, month, isPaid, isRecurring }) => ({
       name,
       amount,
       category,
+      notes,
       dueDate,
       month,
       isPaid,
@@ -117,6 +120,41 @@ router.get('/emis', auth, async (req, res, next) => {
 
 router.post(
   '/emis',
+  auth,
+  [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('amount').isNumeric().withMessage('Amount is required'),
+    body('startDate').isISO8601().withMessage('Valid start date is required'),
+    body('endDate').isISO8601().withMessage('Valid end date is required'),
+  ],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { name, amount, startDate, endDate, dayOfMonth, isActive } = req.body;
+      const emi = new EMI({
+        user: req.user.id,
+        name,
+        amount,
+        startDate,
+        endDate,
+        dayOfMonth,
+        isActive,
+      });
+      await emi.save();
+      return res.status(201).json(emi);
+    } catch (err) {
+      return next(err);
+    }
+  }
+);
+
+// Backward-compatible singular endpoint used by some clients
+router.post(
+  '/emi',
   auth,
   [
     body('name').notEmpty().withMessage('Name is required'),

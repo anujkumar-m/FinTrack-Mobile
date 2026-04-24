@@ -23,6 +23,11 @@ const BillSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    notes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     dueDate: {
       type: Date,
       required: true,

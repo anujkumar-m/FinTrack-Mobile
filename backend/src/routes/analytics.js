@@ -9,9 +9,23 @@ const router = express.Router();
 router.get('/overview', auth, async (req, res, next) => {
   try {
     const months = Number(req.query.months) || 6;
+    const { month, year } = req.query;
+    const filter = { user: req.user.id };
+
+    if (month && /^\d{4}-\d{2}$/.test(month)) {
+      const [y, m] = month.split('-').map(Number);
+      const start = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0));
+      const end = new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
+      filter.date = { $gte: start, $lte: end };
+    } else if (year && /^\d{4}$/.test(String(year))) {
+      const y = Number(year);
+      const start = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
+      const end = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
+      filter.date = { $gte: start, $lte: end };
+    }
 
     const transactions = await Transaction.find({
-      user: req.user.id,
+      ...filter,
     }).sort({ date: 1 });
 
     const byMonth = new Map();

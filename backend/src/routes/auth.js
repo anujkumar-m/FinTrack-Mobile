@@ -45,7 +45,11 @@ router.post(
         },
       };
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET || 'dev_secret_key', {
+      if (!process.env.JWT_SECRET) {
+        throw new Error('FATAL ERROR: JWT_SECRET is not defined.');
+      }
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: '7d',
       });
 
@@ -87,7 +91,11 @@ router.post(
         },
       };
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET || 'dev_secret_key', {
+      if (!process.env.JWT_SECRET) {
+        throw new Error('FATAL ERROR: JWT_SECRET is not defined.');
+      }
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: '7d',
       });
 

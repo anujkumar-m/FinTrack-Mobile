@@ -78,14 +78,20 @@ router.put('/:id', auth, async (req, res, next) => {
   }
 });
 
-// DELETE /api/borrow-lend/:id
-router.delete('/:id', auth, async (req, res, next) => {
+// PATCH /api/borrow-lend/:id - Partial update (e.g., mark as paid)
+router.patch('/:id', auth, async (req, res, next) => {
   try {
-    const entry = await BorrowLend.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    const entry = await BorrowLend.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { $set: req.body },
+      { new: true }
+    );
+
     if (!entry) {
       return res.status(404).json({ message: 'Entry not found' });
     }
-    return res.json({ message: 'Entry deleted' });
+
+    return res.json(entry);
   } catch (err) {
     return next(err);
   }

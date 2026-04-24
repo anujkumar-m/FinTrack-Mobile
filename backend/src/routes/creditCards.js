@@ -78,6 +78,25 @@ router.put('/:id', auth, async (req, res, next) => {
   }
 });
 
+// PATCH /api/credit-cards/:id - Partial update (e.g., mark as paid)
+router.patch('/:id', auth, async (req, res, next) => {
+  try {
+    const card = await CreditCard.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!card) {
+      return res.status(404).json({ message: 'Credit card not found' });
+    }
+
+    return res.json(card);
+  } catch (err) {
+    return next(err);
+  }
+});
+
 // DELETE /api/credit-cards/:id
 router.delete('/:id', auth, async (req, res, next) => {
   try {
