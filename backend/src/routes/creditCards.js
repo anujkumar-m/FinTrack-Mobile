@@ -79,13 +79,14 @@ router.put('/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: 'expense',
         amount: card.billAmount,
-        description: `Credit Card Bill – ${card.name} ****${card.lastFourDigits}`,
+        description: 'Payment Made',
         category: 'Credit Card',
         date: new Date(),
         paymentMode: 'credit_card',
         creditCard: card._id,
       });
     }
+
 
     return res.json(card);
   } catch (err) {
@@ -113,13 +114,14 @@ router.patch('/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: 'expense',
         amount: card.billAmount,
-        description: `Credit Card Bill – ${card.name} ****${card.lastFourDigits}`,
+        description: 'Payment Made',
         category: 'Credit Card',
         date: new Date(),
         paymentMode: 'credit_card',
         creditCard: card._id,
       });
     }
+
 
     return res.json(card);
   } catch (err) {

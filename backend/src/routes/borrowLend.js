@@ -76,21 +76,18 @@ router.put('/:id', auth, async (req, res, next) => {
 
     // Auto-create transaction when entry transitions to paid
     if (oldEntry.status !== 'paid' && entry.status === 'paid') {
-      // borrowed → paid = expense (you repaid someone)
-      // lent → paid = income (someone returned your money)
       const isBorrowed = entry.type === 'borrowed';
       await Transaction.create({
         user: req.user.id,
         type: isBorrowed ? 'expense' : 'income',
         amount: entry.amount,
-        description: isBorrowed
-          ? `Loan Repaid – ${entry.personName}`
-          : `Loan Returned – ${entry.personName}`,
+        description: isBorrowed ? 'Loan Repaid' : 'Payment Made',
         category: 'Borrow/Lend',
         date: new Date(),
         paymentMode: 'bank',
       });
     }
+
 
     return res.json(entry);
   } catch (err) {
@@ -119,14 +116,13 @@ router.patch('/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: isBorrowed ? 'expense' : 'income',
         amount: entry.amount,
-        description: isBorrowed
-          ? `Loan Repaid – ${entry.personName}`
-          : `Loan Returned – ${entry.personName}`,
+        description: isBorrowed ? 'Loan Repaid' : 'Payment Made',
         category: 'Borrow/Lend',
         date: new Date(),
         paymentMode: 'bank',
       });
     }
+
 
     return res.json(entry);
   } catch (err) {
