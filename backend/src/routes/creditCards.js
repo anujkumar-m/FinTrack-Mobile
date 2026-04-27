@@ -79,7 +79,7 @@ router.put('/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: 'expense',
         amount: card.billAmount,
-        description: 'Payment Made',
+        description: `Credit Card Bill – ${card.name} ****${card.lastFourDigits}`,
         category: 'Credit Card',
         date: new Date(),
         paymentMode: 'credit_card',

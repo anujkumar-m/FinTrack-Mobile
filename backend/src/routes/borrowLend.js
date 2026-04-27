@@ -81,7 +81,9 @@ router.put('/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: isBorrowed ? 'expense' : 'income',
         amount: entry.amount,
-        description: isBorrowed ? 'Loan Repaid' : 'Payment Made',
+        description: isBorrowed
+          ? `Loan Repaid – ${entry.personName}`
+          : `Loan Returned – ${entry.personName}`,
         category: 'Borrow/Lend',
         date: new Date(),
         paymentMode: 'bank',

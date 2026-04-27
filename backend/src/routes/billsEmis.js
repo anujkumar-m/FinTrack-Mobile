@@ -90,7 +90,7 @@ router.put('/bills/:id', auth, async (req, res, next) => {
         user: req.user.id,
         type: 'expense',
         amount: bill.amount,
-        description: 'Bill Paid',
+        description: `Bill Paid – ${bill.name}`,
         category: bill.category || 'Bills',
         date: new Date(),
         paymentMode: 'bank',
