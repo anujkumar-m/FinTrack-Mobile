@@ -27,6 +27,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fd45a522-cad3-4da7-a171-c1661c4a2863"
+      }
+    },
+    "owner": "anujkumar-m"
   }
 }

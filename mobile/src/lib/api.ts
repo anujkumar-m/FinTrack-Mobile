@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FALLBACK_URL = __DEV__ ? 'http://localhost:5000/api' : '';
-const API_URL = process.env.EXPO_PUBLIC_API_URL || FALLBACK_URL;
+// const FALLBACK_URL = __DEV__ ? 'http://localhost:5000/api' : '';
+// const API_URL = process.env.EXPO_PUBLIC_API_URL || FALLBACK_URL;
+const FALLBACK_URL = __DEV__ ? 'http://localhost:5000' : '';
+
+const API_URL = (process.env.EXPO_PUBLIC_API_URL || FALLBACK_URL) + '/api';
 
 if (!__DEV__ && !API_URL) {
     console.error('FATAL ERROR: EXPO_PUBLIC_API_URL is missing in production build.');
