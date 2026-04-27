@@ -140,6 +140,60 @@ export function AllDuesScreen() {
         onError: (e: Error) => setNewBorrowError(e.message),
     });
 
+    // ── Settle mutations ─────────────────────────────────────────────────────
+    const settleBillMutation = useMutation({
+        mutationFn: async (item: DueItem) => {
+            const bill = item.originalItem as Bill;
+            const id = (bill as any)._id || bill.id;
+            await api.put(`/bills/${id}`, { isPaid: true });
+        },
+        onSuccess: () => {
+            qc.refetchQueries({ queryKey: ['bills', 'current'], exact: false });
+            qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+            qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+        },
+    });
+
+    const settleCreditCardMutation = useMutation({
+        mutationFn: async (item: DueItem) => {
+            const card = item.originalItem as CreditCard;
+            const id = (card as any)._id || card.id;
+            await api.patch(`/credit-cards/${id}`, { isPaid: true });
+        },
+        onSuccess: () => {
+            qc.refetchQueries({ queryKey: ['credit-cards'], exact: false });
+            qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+            qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+        },
+    });
+
+    const settleBorrowMutation = useMutation({
+        mutationFn: async (item: DueItem) => {
+            const entry = item.originalItem as BorrowLend;
+            const id = (entry as any)._id || entry.id;
+            await api.patch(`/borrow-lend/${id}`, { status: 'paid' });
+        },
+        onSuccess: () => {
+            qc.refetchQueries({ queryKey: ['borrow-lend'], exact: false });
+            qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+            qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+        },
+    });
+
+
+    const handleSettle = (item: DueItem) => {
+        if (item.type === 'bill') settleBillMutation.mutate(item);
+        else if (item.type === 'credit') settleCreditCardMutation.mutate(item);
+        else if (item.type === 'borrow') settleBorrowMutation.mutate(item);
+    };
+
+    const isSettling = (item: DueItem) => {
+        if (item.type === 'bill') return settleBillMutation.isPending;
+        if (item.type === 'credit') return settleCreditCardMutation.isPending;
+        if (item.type === 'borrow') return settleBorrowMutation.isPending;
+        return false;
+    };
+
     const allDues: DueItem[] = useMemo(() => {
         const mappedBills: DueItem[] = bills
             .filter(bill => !bill.isPaid)
@@ -221,11 +275,20 @@ export function AllDuesScreen() {
             </View>
             <View style={styles.cardFooter}>
                 <Text style={styles.cardDueDate}>Due: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'N/A'}</Text>
-                <View style={[styles.statusBadge, item.status === 'Paid' ? styles.statusPaidBg : styles.statusPendingBg]}>
-                    <Text style={[styles.statusText, item.status === 'Paid' ? styles.statusPaidText : styles.statusPendingText]}>
-                        {item.status}
-                    </Text>
-                </View>
+                {item.status === 'Pending' ? (
+                    <TouchableOpacity
+                        style={styles.settleBtn}
+                        onPress={() => handleSettle(item)}
+                        activeOpacity={0.8}
+                        disabled={isSettling(item)}
+                    >
+                        <Text style={styles.settleBtnText}>{isSettling(item) ? '...' : 'Settle'}</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <View style={[styles.statusBadge, styles.statusPaidBg]}>
+                        <Text style={[styles.statusText, styles.statusPaidText]}>PAID</Text>
+                    </View>
+                )}
             </View>
         </View>
     );
@@ -554,6 +617,23 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     modalButton: {
         marginTop: 16,
         borderRadius: 16,
+    },
+    settleBtn: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 7,
+        borderRadius: 10,
+        elevation: 2,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+    },
+    settleBtnText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#fff',
+        letterSpacing: 0.3,
     },
     errorText: {
         color: colors.error,

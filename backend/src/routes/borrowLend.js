@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const BorrowLend = require('../models/BorrowLend');
+const Transaction = require('../models/Transaction');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -53,6 +54,11 @@ router.post(
 // PUT /api/borrow-lend/:id
 router.put('/:id', auth, async (req, res, next) => {
   try {
+    const oldEntry = await BorrowLend.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldEntry) {
+      return res.status(404).json({ message: 'Entry not found' });
+    }
+
     const updates = (({ type, personName, amount, purpose, date, status }) => ({
       type,
       personName,
@@ -68,8 +74,22 @@ router.put('/:id', auth, async (req, res, next) => {
       { new: true }
     );
 
-    if (!entry) {
-      return res.status(404).json({ message: 'Entry not found' });
+    // Auto-create transaction when entry transitions to paid
+    if (oldEntry.status !== 'paid' && entry.status === 'paid') {
+      // borrowed → paid = expense (you repaid someone)
+      // lent → paid = income (someone returned your money)
+      const isBorrowed = entry.type === 'borrowed';
+      await Transaction.create({
+        user: req.user.id,
+        type: isBorrowed ? 'expense' : 'income',
+        amount: entry.amount,
+        description: isBorrowed
+          ? `Loan Repaid – ${entry.personName}`
+          : `Loan Returned – ${entry.personName}`,
+        category: 'Borrow/Lend',
+        date: new Date(),
+        paymentMode: 'bank',
+      });
     }
 
     return res.json(entry);
@@ -81,14 +101,31 @@ router.put('/:id', auth, async (req, res, next) => {
 // PATCH /api/borrow-lend/:id - Partial update (e.g., mark as paid)
 router.patch('/:id', auth, async (req, res, next) => {
   try {
+    const oldEntry = await BorrowLend.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldEntry) {
+      return res.status(404).json({ message: 'Entry not found' });
+    }
+
     const entry = await BorrowLend.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       { $set: req.body },
       { new: true }
     );
 
-    if (!entry) {
-      return res.status(404).json({ message: 'Entry not found' });
+    // Auto-create transaction when entry transitions to paid
+    if (oldEntry.status !== 'paid' && entry.status === 'paid') {
+      const isBorrowed = entry.type === 'borrowed';
+      await Transaction.create({
+        user: req.user.id,
+        type: isBorrowed ? 'expense' : 'income',
+        amount: entry.amount,
+        description: isBorrowed
+          ? `Loan Repaid – ${entry.personName}`
+          : `Loan Returned – ${entry.personName}`,
+        category: 'Borrow/Lend',
+        date: new Date(),
+        paymentMode: 'bank',
+      });
     }
 
     return res.json(entry);

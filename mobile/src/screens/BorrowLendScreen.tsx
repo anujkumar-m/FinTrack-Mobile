@@ -144,11 +144,14 @@ export function BorrowLendScreen() {
     const markPaid = (record: BorrowLend) => {
         const id = (record as any)._id || record.id;
         if (!id) return;
-        
-        api.patch(`/borrow-lend/${id}`, { status: 'paid' }).then(() => {
-            qc.invalidateQueries({ queryKey: ['borrow-lend'] });
-            qc.invalidateQueries({ queryKey: ['dashboard', 'summary'] });
-        });
+
+        api.patch(`/borrow-lend/${id}`, { status: 'paid' })
+            .then(() => {
+                qc.refetchQueries({ queryKey: ['borrow-lend'], exact: false });
+                qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+                qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+            })
+            .catch((e: Error) => console.error('markBorrowPaid failed:', e.message));
     };
 
     const renderItem = useCallback(({ item }: { item: BorrowLend }) => (

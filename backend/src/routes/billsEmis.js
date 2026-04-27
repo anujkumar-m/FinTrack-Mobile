@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Bill = require('../models/Bill');
 const EMI = require('../models/EMI');
+const Transaction = require('../models/Transaction');
 const auth = require('../middleware/auth');
 const { getMonthRange } = require('../utils/dateUtils');
 
@@ -62,25 +63,39 @@ router.post(
 
 router.put('/bills/:id', auth, async (req, res, next) => {
   try {
-    const updates = (({ name, amount, category, notes, dueDate, month, isPaid, isRecurring }) => ({
-      name,
-      amount,
-      category,
-      notes,
-      dueDate,
-      month,
-      isPaid,
-      isRecurring,
-    }))(req.body);
+    // Fetch the old bill to detect isPaid transition
+    const oldBill = await Bill.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldBill) {
+      return res.status(404).json({ message: 'Bill not found' });
+    }
+
+    // Only include fields that are explicitly provided in the request body
+    const allowedFields = ['name', 'amount', 'category', 'notes', 'dueDate', 'month', 'isPaid', 'isRecurring'];
+    const updates = {};
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
 
     const bill = await Bill.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      updates,
+      { $set: updates },
       { new: true }
     );
 
-    if (!bill) {
-      return res.status(404).json({ message: 'Bill not found' });
+    // Auto-create expense transaction when bill transitions to paid
+    if (!oldBill.isPaid && bill.isPaid) {
+      await Transaction.create({
+        user: req.user.id,
+        type: 'expense',
+        amount: bill.amount,
+        description: `Bill Paid – ${bill.name}`,
+        category: bill.category || 'Bills',
+        date: new Date(),
+        paymentMode: 'bank',
+        bill: bill._id,
+      });
     }
 
     return res.json(bill);

@@ -74,10 +74,11 @@ export function BillsScreen() {
     const markBillPaid = (bill: Bill) => {
         const id = (bill as any)._id || bill.id;
         if (!id) return;
-        api.put(`/bills/${id}`, { ...bill, isPaid: true }).then(() => {
-            qc.invalidateQueries({ queryKey: ['bills', 'current'] });
-            qc.invalidateQueries({ queryKey: ['dashboard', 'summary'] });
-        });
+        api.put(`/bills/${id}`, { isPaid: true }).then(() => {
+            qc.refetchQueries({ queryKey: ['bills', 'current'], exact: false });
+            qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+            qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+        }).catch((e: Error) => console.error('markBillPaid failed:', e.message));
     };
 
     return (

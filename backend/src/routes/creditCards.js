@@ -53,6 +53,11 @@ router.post(
 // PUT /api/credit-cards/:id
 router.put('/:id', auth, async (req, res, next) => {
   try {
+    const oldCard = await CreditCard.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldCard) {
+      return res.status(404).json({ message: 'Credit card not found' });
+    }
+
     const updates = (({ name, lastFourDigits, billAmount, dueDate, isPaid, limit }) => ({
       name,
       lastFourDigits,
@@ -68,8 +73,18 @@ router.put('/:id', auth, async (req, res, next) => {
       { new: true }
     );
 
-    if (!card) {
-      return res.status(404).json({ message: 'Credit card not found' });
+    // Auto-create expense transaction when card bill transitions to paid
+    if (!oldCard.isPaid && card.isPaid && card.billAmount > 0) {
+      await Transaction.create({
+        user: req.user.id,
+        type: 'expense',
+        amount: card.billAmount,
+        description: `Credit Card Bill – ${card.name} ****${card.lastFourDigits}`,
+        category: 'Credit Card',
+        date: new Date(),
+        paymentMode: 'credit_card',
+        creditCard: card._id,
+      });
     }
 
     return res.json(card);
@@ -81,14 +96,29 @@ router.put('/:id', auth, async (req, res, next) => {
 // PATCH /api/credit-cards/:id - Partial update (e.g., mark as paid)
 router.patch('/:id', auth, async (req, res, next) => {
   try {
+    const oldCard = await CreditCard.findOne({ _id: req.params.id, user: req.user.id });
+    if (!oldCard) {
+      return res.status(404).json({ message: 'Credit card not found' });
+    }
+
     const card = await CreditCard.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       { $set: req.body },
       { new: true }
     );
 
-    if (!card) {
-      return res.status(404).json({ message: 'Credit card not found' });
+    // Auto-create expense transaction when card bill transitions to paid
+    if (!oldCard.isPaid && card.isPaid && card.billAmount > 0) {
+      await Transaction.create({
+        user: req.user.id,
+        type: 'expense',
+        amount: card.billAmount,
+        description: `Credit Card Bill – ${card.name} ****${card.lastFourDigits}`,
+        category: 'Credit Card',
+        date: new Date(),
+        paymentMode: 'credit_card',
+        creditCard: card._id,
+      });
     }
 
     return res.json(card);

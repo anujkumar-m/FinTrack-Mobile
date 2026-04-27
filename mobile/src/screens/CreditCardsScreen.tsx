@@ -62,11 +62,12 @@ export function CreditCardsScreen() {
         const id = (card as any)._id || card.id;
         if (!id) return;
         api.patch(`/credit-cards/${id}`, { isPaid: true })
-            .catch(() => api.put(`/credit-cards/${id}`, { ...card, isPaid: true }))
             .then(() => {
-                qc.invalidateQueries({ queryKey: ['credit-cards'] });
-                qc.invalidateQueries({ queryKey: ['dashboard', 'summary'] });
-            });
+                qc.refetchQueries({ queryKey: ['credit-cards'], exact: false });
+                qc.refetchQueries({ queryKey: ['dashboard', 'summary'], exact: false });
+                qc.refetchQueries({ queryKey: ['transactions'], exact: false });
+            })
+            .catch((e: Error) => console.error('markCardPaid failed:', e.message));
     };
 
     return (
